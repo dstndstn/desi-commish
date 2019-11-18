@@ -18,6 +18,7 @@ from commish import *
 
 #expnums = [27552, 27617, 27619, 27621, 27623, 27625, 27627, 27629]
 expnums = [27552]
+gnums = [0, 5] #, 2, 7] #, 3, 8]
 
 gfa_avgra = {}
 gfa_avgdec = {}
@@ -25,178 +26,189 @@ headers = {}
 
 desi_dir = '/global/project/projectdirs/desi/spectro/data/'
 
-goodpix = {0:good0, 5:good5, }
+goodpix = {}
+for gnum in gnums:
+    goodpix[gnum] = read_good_pix_maps(guide='GUIDE%i'%gnum)
+
 ii = 0
 for expnum in expnums:
     F = fitsio.FITS(desi_dir + '20191113/%08i/guide-%08i.fits.fz' % (expnum, expnum))
-    imgfns = []
-    for gnum in [0, 5, 2, 7, 3, 8]:
+    for gnum in gnums:
         gname = 'GUIDE%i' % gnum
 
         hdr = F[gname].read_header()
         print(hdr['DEVICE'])
         headers[(expnum,gnum)] = hdr
 
-        ########
-        #continue
-        ########
-    
+#         ########
+        continue
+#         ########
+
         gfa_stack = F[gname].read()
         good = goodpix[gnum]
         skyra = hdr['SKYRA']
         skydec = hdr['SKYDEC']
+
+        gfasum = np.sum(gfa_stack, axis=0)
+        print('Sum:', gfasum.shape)
+        g,x0,y0 = sub_guide_image(gfasum)
+        imgfn = '/global/cscratch1/sd/dstn/gfa-wcs/%i-sum-%s.fits' % (expnum, gname)
+        fitsio.write(imgfn, g*good, clobber=True)
+        cmd = (('solve-field --config /global/project/projectdirs/cosmo/work/users/dstn/index-5000/cfg --xscale 1.1' +
+                ' --ra %f --dec %f --radius 2 --scale-low 0.18 --scale-high 0.24 --scale-units app --downsample 2' +
+                ' --continue --crpix-center --dir /global/cscratch1/sd/dstn/gfa-wcs --tweak-order 1' +
+                ' --no-remove-lines --uniformize 0 --plot-scale 0.5 --batch') % (skyra, skydec))
+        cmd += ' ' + imgfn
+        print(cmd, '> /tmp/%i.log 2>&1 &' % ii)
+        
+        continue
+
         #print(gfa_stack.shape)
         nims,h,w = gfa_stack.shape
+        imgfns = []
         for i in range(nims):
             g,x0,y0 = sub_guide_image(gfa_stack[i,:,:])
             imgfn = '/global/cscratch1/sd/dstn/gfa-wcs/%i-%i-%s.fits' % (expnum, i, gname)
             fitsio.write(imgfn, g*good, clobber=True)
             imgfns.append(imgfn)
-    cmd = (('solve-field --config /global/project/projectdirs/cosmo/work/users/dstn/index-5000/cfg --xscale 1.1' +
-        ' --ra %f --dec %f --radius 2 --scale-low 0.18 --scale-high 0.24 --scale-units app --downsample 2' +
-        ' -v --continue --crpix-center --dir /global/cscratch1/sd/dstn/gfa-wcs --tweak-order 1' +
-        ' --no-remove-lines --uniformize 0 --plot-scale 0.5 --batch') % (skyra, skydec))
-    cmd += ' ' + ' '.join(imgfns)
-    print(cmd, '> /tmp/%i.log 2>&1 &' % ii)
-    ii += 1
+        #cmd = (('~/gfa-astrometry.py --guides %i --out /global/cscratch1/sd/dstn/gfa-wcs') %
+        #       (gnum))
+        cmd = (('solve-field --config /global/project/projectdirs/cosmo/work/users/dstn/index-5000/cfg --xscale 1.1' +
+                ' --ra %f --dec %f --radius 2 --scale-low 0.18 --scale-high 0.24 --scale-units app --downsample 2' +
+                ' --continue --crpix-center --dir /global/cscratch1/sd/dstn/gfa-wcs --tweak-order 1' +
+                ' --no-remove-lines --uniformize 0 --plot-scale 0.5 --batch') % (skyra, skydec))
+        cmd += ' ' + ' '.join(imgfns)
+        print(cmd, '> /tmp/%i.log 2>&1 &' % ii)
+        ii += 1
+        
+G = fits_table()
+G.skyra = []
+G.skydec = []
+G.reqra = []
+G.reqdec = []
+G.gfara = []
+G.gfadec = []
+G.expnum = []
+for gnum in gnums:
+    G.set('gfa%ira'%gnum, [])
+    G.set('gfa%idec'%gnum, [])
+
+    G.set('gfa%ira_all'%gnum, [])
+    G.set('gfa%idec_all'%gnum, [])
+
+    G.set('gfa%ira_sum'%gnum, [])
+    G.set('gfa%idec_sum'%gnum, [])
+    
+for expnum in expnums:
+
+    hdr = headers[(expnum,gnum)]
+    G.expnum.append(expnum)
+    G.skyra.append(hdr['SKYRA'])
+    G.skydec.append(hdr['SKYDEC'])
+    G.reqra.append(hdr['REQRA'])
+    G.reqdec.append(hdr['REQDEC'])
+
+    for gnum in gnums:
+        gname = 'GUIDE%i' % gnum
+
+        ras,decs = [],[]
+        for i in range(100):
+            wcsfn = '/global/cscratch1/sd/dstn/gfa-wcs/%i-%i-%s.wcs' % (expnum, i, gname)
+            if not os.path.exists(wcsfn):
+                print('Does not exist:', wcsfn)
+                break
+            wcs = Tan(wcsfn)
+            ras.append(wcs.crval[0])
+            decs.append(wcs.crval[1])
+            #print('CRPIX', wcs.crpix)
+
+        G.get('gfa%ira_all'%gnum).append(ras)
+        G.get('gfa%idec_all'%gnum).append(decs)
+        G.get('gfa%ira'  % gnum).append(np.median(ras))
+        G.get('gfa%idec' % gnum).append(np.median(decs))
+
+        wcsfn = '/global/cscratch1/sd/dstn/gfa-wcs/%i-sum-%s.wcs' % (expnum, gname)
+        if not os.path.exists(wcsfn):
+            print('Does not exist:', wcsfn)
+            break
+        wcs = Tan(wcsfn)
+        G.get('gfa%ira_sum' % gnum).append(wcs.crval[0])
+        G.get('gfa%idec_sum' % gnum).append(wcs.crval[1])
+        
+G.to_np_arrays()
+
+G.gfara = np.zeros(len(G))
+G.gfadec = np.zeros(len(G))
+for i,g in enumerate(G):
+    r,d = average_radec([g.gfa0ra, g.gfa5ra], [g.gfa0dec, g.gfa5dec])
+    G.gfara[i] = r
+    G.gfadec[i] = d
+
+G.writeto('guide.fits')
+
+
+
+for i,g in enumerate(G):
+    print('REQ RA,Dec:       (%.5f, %.5f)' % (g.reqra, g.reqdec))
+
+    r,d = average_radec([g.gfa0ra_sum, g.gfa5ra_sum], [g.gfa0dec_sum, g.gfa5dec_sum])
+    print('Summed GFA (0-5): (%.5f, %.5f)' % (r, d))
+
+    cosdec = np.cos(np.deg2rad(g.reqdec))
+    dr = (r - g.reqra ) * cosdec * 3600.
+    dd = (d - g.reqdec) * 3600.
+    print('Summed GFA - REQ: dRA,dDec %.1f, %.1f arcsec' % (dr,dd)) 
+
+    dr = (g.gfara  - g.reqra ) * cosdec * 3600.
+    dd = (g.gfadec - g.reqdec) * 3600.
+    print('GFA - REQ: dRA,dDec %.1f, %.1f arcsec' % (dr,dd)) 
+    for j,(r0,r5,d0,d5) in enumerate(zip(g.gfa0ra_all, g.gfa5ra_all, g.gfa0dec_all, g.gfa5dec_all)):
+        r,d = average_radec([r0, r5], [d0, d5])
+        dr = (r - g.reqra ) * cosdec * 3600.
+        dd = (d - g.reqdec) * 3600.
+        print('GFA(%i) - REQ: dRA,dDec %.1f, %.1f arcsec' % (j, dr,dd))
+
+
+
+for i,g in enumerate(G):
+    cosdec = np.cos(np.deg2rad(g.skydec))
+    print('SKY RA,Dec:       (%.5f, %.5f)' % (g.skyra, g.skydec))
+
+    r,d = average_radec([g.gfa0ra_sum, g.gfa5ra_sum], [g.gfa0dec_sum, g.gfa5dec_sum])
+    print('Summed GFA (0-5): (%.5f, %.5f)' % (r, d))
+    dr = (r - g.skyra ) * cosdec * 3600.
+    dd = (d - g.skydec) * 3600.
+    print('Summed GFA - SKY: dRA,dDec %.1f, %.1f arcsec' % (dr,dd)) 
+
+    print('Medianed GFA (0-5): (%.5f, %.5f)' % (r, d))
+    dr = (g.gfara  - g.skyra ) * cosdec * 3600.
+    dd = (g.gfadec - g.skydec) * 3600.
+    print('GFA - SKY: dRA,dDec %.1f, %.1f arcsec' % (dr,dd)) 
+
+    for j,(r0,r5,d0,d5) in enumerate(zip(g.gfa0ra_all, g.gfa5ra_all, g.gfa0dec_all, g.gfa5dec_all)):
+        dr = (r - g.skyra ) * cosdec * 3600.
+        dd = (d - g.skydec) * 3600.
+        print('GFA(%i) - SKY: dRA,dDec %.1f, %.1f arcsec' % (j, dr,dd))
+
+
+    for j,(r0,r5,d0,d5) in enumerate(zip(g.gfa0ra_all, g.gfa5ra_all, g.gfa0dec_all, g.gfa5dec_all)):
+        r,d = average_radec([r0, r5], [d0, d5])
+        dr = (r - g.skyra ) * cosdec * 3600.
+        dd = (d - g.skydec) * 3600.
+        print('GFA(%i) - SKY: dRA,dDec %.1f, %.1f arcsec' % (j, dr,dd))
+
+
+    
 
 import sys
 sys.exit(0)
 
-# In[20]:
 
-
-allg0 = [read_guide_image(e) for e in exps]
-
-
-# In[21]:
-
-
-len(allg0)
-
-
-# In[22]:
-
-
-gmed = np.median(np.dstack([g[0] for g in allg0]), axis=2)
-
-
-# In[23]:
-
-
-gmed.shape
-
-
-# In[25]:
-
-
-plt.imshow(gmed, vmin=0, vmax=300);
-
-
-# In[26]:
-
-
-def find_hot_pix(imgs):
-    npeaks = np.zeros(imgs[0].shape)
-    for g in imgs:
-        peak = np.ones(g.shape, bool)
-        peak[1:,:] *= (g[1:,:] > g[:-1,:])
-        #print('After 1:', np.sum(peak), 'peaks')
-        peak[:-1,:] *= (g[:-1,:] > g[1:,:])
-        #print('After 2:', np.sum(peak), 'peaks')
-        peak[:,1:] *= (g[:,1:] > g[:,:-1])
-        #print('After 3:', np.sum(peak), 'peaks')
-        peak[:,:-1] *= (g[:,:-1] > g[:,1:])
-        #print('After 4:', np.sum(peak), 'peaks')
-        peak[1:,1:] *= (g[1:,1:] > g[:-1,:-1])
-        #print('After 5:', np.sum(peak), 'peaks')
-        peak[1:,:-1] *= (g[1:,:-1] > g[:-1,1:])
-        #print('After 6:', np.sum(peak), 'peaks')
-        peak[:-1,1:] *= (g[:-1,1:] > g[1:,:-1])
-        #print('After 7:', np.sum(peak), 'peaks')
-        peak[:-1,:-1] *= (g[:-1,:-1] > g[1:,1:])
-        #print('After 8:', np.sum(peak), 'peaks')
-        npeaks += (peak*1)
-    return (npeaks > int(len(imgs)*0.9))
-
-
-# In[ ]:
-
-
-# Aaron's static bad-pixel masks
-mask = fitsio.read('/project/projectdirs/desi/users/ameisner/GFA/calib_20191015/GFA_static_bad_pixels.fits')
-
-
-# In[ ]:
-
-
-good0 = np.logical_not(find_hot_pix([g[0] for g in allg0]))
-
-
-# In[ ]:
-
-
-allg5 = [read_guide_image(e, ext='GUIDE5') for e in exps]
-good5 = np.logical_not(find_hot_pix([g[0] for g in allg5]))
-
-
-# In[ ]:
-
-
-for e,(g0,x0,y0) in zip(exps, allg0):
-    fitsio.write('/global/cscratch1/sd/dstn/gfa-dither/%i-g0.fits' % e, g0 * goodpix)
-
-
-# In[ ]:
-
-
-for e,(g,x0,y0) in zip(exps, allg5):
-    fitsio.write('/global/cscratch1/sd/dstn/gfa-dither/%i-g5.fits' % e, g * good5)
-
-
-# In[ ]:
-
-
-# solve-field --config ~/cosmo/work/users/dstn/index-5000/cfg --xscale 1.1 --ra 20.7 --dec 30.6 --radius 2 \
-# --scale-low 0.18 --scale-high 0.24 --scale-units app --downsample 2 -v --continue --crpix-center \
-# $CSCRATCH/gfa-dither/*-g?.fits --batch
-
-
-# In[ ]:
-
-
-g0wcs = glob('/global/cscratch1/sd/dstn/gfa-dither/*-g0.wcs')
-g5wcs = glob('/global/cscratch1/sd/dstn/gfa-dither/*-g5.wcs')
-
-
-# In[ ]:
-
-
-g0wcs = [Sip(fn) for fn in g0wcs]
-g5wcs = [Sip(fn) for fn in g5wcs]
-
-
-# In[ ]:
-
-
-plt.plot([wcs.crval[0] for wcs in g0wcs], [wcs.crval[1] for wcs in g0wcs], 'b.');
-#plt.plot([wcs.crval[0] for wcs in g5wcs], [wcs.crval[1] for wcs in g5wcs], 'r.')
-
-
-# In[ ]:
-
-
-plt.plot([wcs.crval[0] for wcs in g0wcs], [wcs.crval[1] for wcs in g0wcs], 'b.');
-
-
-# In[ ]:
-
-
-g0tan = [Tan(fn) for fn in sorted(glob('/global/cscratch1/sd/dstn/gfa-dither/tanwcs/*-g0.wcs'))]
-g5tan = [Tan(fn) for fn in sorted(glob('/global/cscratch1/sd/dstn/gfa-dither/tanwcs/*-g5.wcs'))]         
-
-
-# In[ ]:
+#good0 = np.logical_not(find_hot_pix([g[0] for g in allg0]))
+#allg5 = [read_guide_image(e, ext='GUIDE5') for e in exps]
+#good5 = np.logical_not(find_hot_pix([g[0] for g in allg5]))
+#for e,(g0,x0,y0) in zip(exps, allg0):
+#    fitsio.write('/global/cscratch1/sd/dstn/gfa-dither/%i-g0.fits' % e, g0 * goodpix)
 
 
 plt.figure(figsize=(8,8))
@@ -272,25 +284,6 @@ for e,(g,x0,y0) in zip(exps, allg7):
     fitsio.write('/global/cscratch1/sd/dstn/gfa-dither/%i-g7.fits' % e, g * good7)
 
 
-# In[ ]:
-
-
-# solve-field --config cfg --xscale 1.1 --ra 20.7 --dec 30.6 --radius 2 --scale-low 0.18 --scale-high 0.24 --scale-units app --downsample 2 -v --continue --crpix-center $CSCRATCH/gfa-dither/*-g?.axy --dir $CSCRATCH/gfa-dither/tanwcs --batch --no-tweak --width 2048 --height 1032 --no-remove-lines --uniformize 0
-
-
-# In[ ]:
-
-
-# solve-field --config cfg --xscale 1.1 --ra 20.7 --dec 30.6 --radius 2 --scale-low 0.18 --scale-high 0.24 --scale-units app --downsample 2 -v --continue --crpix-center $CSCRATCH/gfa-dither/*-g?.fits --dir $CSCRATCH/gfa-dither/tanwcs --batch --no-tweak --no-remove-lines --uniformize 0 --plot-scale 0.5
-
-
-# In[ ]:
-
-
-# solve-field --config cfg --xscale 1.1 --ra 20.7 --dec 30.6 --radius 2 --scale-low 0.18 --scale-high 0.24 --scale-units app --downsample 2 -v --continue --crpix-center $CSCRATCH/gfa-dither/*-g?.fits --dir $CSCRATCH/gfa-dither/tanwcs --batch --tweak-order 0 --no-remove-lines --uniformize 0 --plot-scale 0.5
-
-
-# In[ ]:
 
 
 g2tan = [Tan(fn) for fn in sorted(glob('/global/cscratch1/sd/dstn/gfa-dither/tanwcs/*-g2.wcs'))]
@@ -879,6 +872,14 @@ gfa_avgra, gfa_avgdec
 
 
 # In[172]:
+# for expnum in expnums:
+#     F = fitsio.FITS(desi_dir + '20191113/%08i/guide-%08i.fits.fz' % (expnum, expnum))
+#     for gnum in [0, 5]:
+#         gname = 'GUIDE%i' % gnum
+#         hdr = F[gname].read_header()
+#         print(hdr['DEVICE'])
+#         headers[(expnum,gnum)] = hdr
+    
 
 
 G = fits_table()
@@ -898,21 +899,6 @@ G.gfa5dec = []
 #expnums = [27552] #, 27617]
 for e in expnums:
     gnum=0
-    hdr = headers[(e,gnum)]
-    G.expnum.append(e)
-    G.skyra.append(hdr['SKYRA'])
-    G.skydec.append(hdr['SKYDEC'])
-    G.reqra.append(hdr['REQRA'])
-    G.reqdec.append(hdr['REQDEC'])
-    G.gfara.append(gfa_avgra[e])
-    G.gfadec.append(gfa_avgdec[e])
-
-    G.gfa0ra.append(gfa_avgra[(e,0)])
-    G.gfa0dec.append(gfa_avgdec[(e,0)])
-    G.gfa5ra.append(gfa_avgra[(e,5)])
-    G.gfa5dec.append(gfa_avgdec[(e,5)])
-    
-G.to_np_arrays()
 
 
 # In[173]:
@@ -1267,18 +1253,6 @@ plt.savefig('dither2-20191114-diff.png')
 # In[142]:
 
 
-def average_radec(ras, decs):
-    xyz = np.zeros(3)
-    for ra,dec in zip(ras, decs):
-        xyz[0] += np.cos(np.deg2rad(ra)) * np.cos(np.deg2rad(dec))
-        xyz[1] += np.sin(np.deg2rad(ra)) * np.cos(np.deg2rad(dec))
-        xyz[2] += np.sin(np.deg2rad(dec))
-    xyz /= len(ras)
-    dec = np.rad2deg(np.arcsin(xyz[2]))
-    a = np.arctan2(xyz[1], xyz[0])
-    a += (a<0) * (2.*np.pi)
-    ra = np.rad2deg(a)
-    return ra,dec
 
 
 # In[143]:
