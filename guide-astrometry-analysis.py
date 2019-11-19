@@ -20,10 +20,14 @@ from commish import *
 
 # 27623.0 fails, 27625.2, 27627.0, 27629.0
 
-expnums = [27552, 27617, 27619, 27621, 27625]
+#expnums = [27552, 27617, 27619, 27621, 27625]
+expnums = [28758, 28760, 28762, 28764]
 #expnums = [27552]
 #expnums = [27552, 27617, 27619, 27621, 27623, 27625, 27627, 27629]
 gnums = [0, 5]#, 2, 7, 3, 8]
+
+#night_dir = '20191113'
+night_dir = '20191116'
 
 gfa_avgra = {}
 gfa_avgdec = {}
@@ -31,7 +35,8 @@ headers = {}
 
 desi_dir = '/global/project/projectdirs/desi/spectro/data/'
 
-only_sums = True
+#only_sums = True
+only_sums = False
 
 goodpix = {}
 for gnum in gnums:
@@ -55,7 +60,7 @@ for gnum in gnums:
     
 ii = 0
 for expnum in expnums:
-    F = fitsio.FITS(desi_dir + '20191113/%08i/guide-%08i.fits.fz' % (expnum, expnum))
+    F = fitsio.FITS(os.path.join(desi_dir, night_dir, '%08i'%expnum, 'guide-%08i.fits.fz'%expnum))
 
     hdr = F['GUIDE0'].read_header()
     G.expnum.append(expnum)
@@ -85,19 +90,24 @@ for expnum in expnums:
             g,x0,y0 = sub_guide_image(gfasum)
             imgfn = '/global/cscratch1/sd/dstn/gfa-wcs/%i-sum-%s.fits' % (expnum, gname)
             fitsio.write(imgfn, g*good, clobber=True)
-            cmd = (('solve-field --config /global/project/projectdirs/cosmo/work/users/dstn/index-5000/cfg --xscale 1.1' +
+            cmd = (('solve-field --objs 50 --config /global/project/projectdirs/cosmo/work/users/dstn/index-5000/cfg --xscale 1.1' +
                     ' --ra %f --dec %f --radius 2 --scale-low 0.18 --scale-high 0.24 --scale-units app --downsample 2' +
                     ' --continue --crpix-center --dir /global/cscratch1/sd/dstn/gfa-wcs --tweak-order 1' +
-                    ' --no-remove-lines --uniformize 0 --plot-scale 0.5 --batch') % (skyra, skydec))
+                    ' --plot-scale 0.5 --batch') % (skyra, skydec))
+            #' --no-remove-lines --uniformize 0 --plot-scale 0.5 --batch') % (skyra, skydec))
             cmd += ' ' + imgfn
             print(cmd)
             rtn = os.system(cmd)
             print('->', rtn)
             assert(rtn == 0)
 
-        wcs = Tan(wcsfn)
-        G.get('gfa%ira_sum' % gnum).append(wcs.crval[0])
-        G.get('gfa%idec_sum' % gnum).append(wcs.crval[1])
+        if os.path.exists(wcsfn):
+            wcs = Tan(wcsfn)
+            r,d = wcs.crval
+        else:
+            r,d = np.nan, np.nan
+        G.get('gfa%ira_sum' % gnum).append(r)
+        G.get('gfa%idec_sum' % gnum).append(d)
 
         ### Just do the sums
         if only_sums:
@@ -127,6 +137,7 @@ for expnum in expnums:
                     ' --plot-scale 0.5 --batch') % (skyra, skydec))
             #' --no-remove-lines --uniformize 0
             cmd += ' ' + ' '.join(imgfns)
+            print(cmd)
             rtn = os.system(cmd)
             assert(rtn == 0)
 
