@@ -103,7 +103,35 @@ def dither_plots(start, ending, name):
 
     dither.adc1stat = np.array([h.get('ADC1STAT', np.nan) for h in hdrs])
     dither.adc2stat = np.array([h.get('ADC2STAT', np.nan) for h in hdrs])
+
+    dither.targetra  = np.array([h.get('TARGTRA',  np.nan) for h in hdrs])
+    dither.targetdec = np.array([h.get('TARGTDEC', np.nan) for h in hdrs])
+
+    dither.targetel = np.array([h.get('TARGTEL', np.nan) for h in hdrs])
+    dither.targetaz = np.array([h.get('TARGTAZ', np.nan) for h in hdrs])
     
+    dither.deltara  = np.array([h.get('DELTARA',  np.nan) for h in hdrs])
+    dither.deltadec = np.array([h.get('DELTADEC', np.nan) for h in hdrs])
+
+    dither.guideoffra  = np.array([h.get('GUIDOFFR', np.nan) for h in hdrs])
+    dither.guideoffdec = np.array([h.get('GUIDOFFD', np.nan) for h in hdrs])
+
+    dither.parallac = np.array([h['PARALLAC'] for h in hdrs])
+    dither.zd = np.array([h['ZD'] for h in hdrs])
+
+    dither.exptime = np.array([h['EXPTIME'] for h in hdrs])
+    
+    adccorr = []
+    for h in hdrs:
+        if 'ADCCORR' in h:
+            s = str(h['ADCCORR'])
+            print('ADCCORR', s)
+        else:
+            print('No ADCCORR')
+            s = '(absent)'
+        adccorr.append(s)
+    dither.adccorr = np.array(adccorr)
+
     dither.writeto('%s.fits' % name)
 
     plt.figure(figsize=(8,8))
@@ -153,47 +181,48 @@ def main():
     #dither_plots(27690, 27732+1, 'dither1a')
     #dither_plots(27733, 27775+1, 'dither1b')
     #dither_plots(27781, 27822+1, 'dither2');
-    #dither_plots(27781, 27801+1, 'dither2a');
-    #dither_plots(27802, 27822+1, 'dither2b');
+    dither_plots(27781, 27801+1, 'dither2a');
+    dither_plots(27802, 27822+1, 'dither2b');
     #dither_plots(27825, 27866+1, 'dither3');
-    #dither_plots(27825, 27845+1, 'dither3a');
-    #dither_plots(27846, 27866+1, 'dither3b');
+    dither_plots(27825, 27845+1, 'dither3a');
+    dither_plots(27846, 27866+1, 'dither3b');
     #dither_plots(27869, 27910+1, 'dither4');
-    #dither_plots(27869, 27889+1, 'dither4a');
-    #dither_plots(27890, 27910+1, 'dither4b');
+    dither_plots(27869, 27889+1, 'dither4a');
+    dither_plots(27890, 27910+1, 'dither4b');
     #dither_plots(27913, 27954+1, 'dither5');
-    #dither_plots(27913, 27933+1, 'dither5a');
-    #dither_plots(27934, 27954+1, 'dither5b');
-    
-    plt.figure(figsize=(8,8))
-    seqs = ['1a','1b','2a','2b','3a','3b','4a','4b','5a','5b']
-    for i,seq in enumerate(seqs):
-        T = fits_table('dither%s.fits' % seq)
-    
-        if 'a' in seq:
-            txt = 'ADC ON'
-            c = 'r'
-        else:
-            txt = 'ADC OFF'
-            c = 'b'
-    
-        if i%2 == 0:
-            plt.clf()
-    
-        cosdec = np.cos(np.deg2rad(T.sky_dec))
-        dR = (T.gfa_ra  - T.sky_ra)*cosdec*3600.
-        dD = (T.gfa_dec - T.sky_dec)*3600.
-        plt.plot(dR, dD, 'o-', color=c, label='%s (%s): Mean GFA - SKY' % (seq, txt))
-        for dr,dd,d in zip([dR[0],dR[-1]], [dD[0],dD[-1]], [T[0], T[-1]]):
-            plt.text(dr, dd, '%i'%d.expnum, color='k', fontsize=16)
-    
-        if i%2==1:
-            plt.legend()
-            plt.axis('equal')
-            plt.title('Dither sequences with and without ADC')
-            plt.xlabel('delta-RA (arcsec)')
-            plt.ylabel('delta-Dec (arcsec)')
-            plt.savefig('dithers-diff-%i.png' % (1+i//2))
+    dither_plots(27913, 27933+1, 'dither5a');
+    dither_plots(27934, 27954+1, 'dither5b');
+
+    if False:
+        plt.figure(figsize=(8,8))
+        seqs = ['1a','1b','2a','2b','3a','3b','4a','4b','5a','5b']
+        for i,seq in enumerate(seqs):
+            T = fits_table('dither%s.fits' % seq)
+        
+            if 'a' in seq:
+                txt = 'ADC ON'
+                c = 'r'
+            else:
+                txt = 'ADC OFF'
+                c = 'b'
+        
+            if i%2 == 0:
+                plt.clf()
+        
+            cosdec = np.cos(np.deg2rad(T.sky_dec))
+            dR = (T.gfa_ra  - T.sky_ra)*cosdec*3600.
+            dD = (T.gfa_dec - T.sky_dec)*3600.
+            plt.plot(dR, dD, 'o-', color=c, label='%s (%s): Mean GFA - SKY' % (seq, txt))
+            for dr,dd,d in zip([dR[0],dR[-1]], [dD[0],dD[-1]], [T[0], T[-1]]):
+                plt.text(dr, dd, '%i'%d.expnum, color='k', fontsize=16)
+        
+            if i%2==1:
+                plt.legend()
+                plt.axis('equal')
+                plt.title('Dither sequences with and without ADC')
+                plt.xlabel('delta-RA (arcsec)')
+                plt.ylabel('delta-Dec (arcsec)')
+                plt.savefig('dithers-diff-%i.png' % (1+i//2))
     
 
 '''
