@@ -28,3 +28,9 @@ def sub_guide_image(g):
     gclean [516:, 1024:] = sub - np.median(sub)
     return gclean, 50, 50
 
+def read_guide_image(expnum, ext='GUIDE0'):
+    fn = gfa_filename(expnum)
+    F = fitsio.FITS(fn)
+    g = F[ext].read()
+    gclean,x0,y0 = sub_guide_image(g)
+    return gclean, x0, y0
