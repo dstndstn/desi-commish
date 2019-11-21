@@ -51,11 +51,11 @@ def write_astrometry_for_gfa_file(fn, out_dir, gnums=[0,2,3,5,7,8], left=False, 
     if an_py_path is not None:
         cmd = ('PYTHONPATH=%s:${PYTHONPATH} ' % an_py_path) + cmd
         
-    cmd += ('solve-field --config %s --xscale 1.1' +
-            ' --ra %f --dec %f --radius 2 --scale-low 0.18 --scale-high 0.24 --scale-units app --downsample 2' +
-            ' --continue --tweak-order 1 --plot-scale 0.5 --objs 100' +
-            ' --batch --dir %s %s ') %
-           (config_fn, skyra, skydec, out_dir, crpix_arg))
+    cmd += (('solve-field --config %s --xscale 1.1' +
+             ' --ra %f --dec %f --radius 2 --scale-low 0.18 --scale-high 0.24 --scale-units app --downsample 2' +
+             ' --continue --tweak-order 1 --plot-scale 0.5 --objs 100' +
+             ' --batch --dir %s %s ') %
+            (config_fn, skyra, skydec, out_dir, crpix_arg))
     cmd += ' '.join(imgfns)
     print(cmd)
     os.system(cmd)

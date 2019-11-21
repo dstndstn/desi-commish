@@ -12,6 +12,7 @@ from glob import glob
 import os
 
 import commish_paths
+from commish import write_astrometry_for_gfa_expnum, write_astrometry_for_gfa_file
 
 def main():
     import argparse
