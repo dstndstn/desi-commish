@@ -70,10 +70,13 @@ the physical CCD area ($1024 \times 1032$) is shown.
     \includegraphics[width=0.3\textwidth]{gfa-metrology1a.jpeg}
     \includegraphics[width=0.5\textwidth]{gfa-metrology1b.jpeg}
   \end{center}
-  \caption{\label{fig:metrologya}Top: layout of the four quadrants
-    (with the same order as the FITS file) in the GFA metrology
-    images.  The axes mark the origin and direction of the pixels in
-    each image.  Bottom: pixel layout within each FITS image.}
+  \caption{\label{fig:metrologya}Left: layout of the four quadrants
+    (with the same order as the FITS file extensions) in the GFA
+    metrology images.  In the spreadsheets, the pixel locations of the
+    spots are given in a combined coordinate system in the arrangement
+    shown, with $(0,0)$ in the lower left. The axes mark the origin
+    and direction of the pixels in each image.  Right: pixel layout
+    within each FITS image.}
 \end{figure}
 
 On the mountain, the GFAs have a mask installed so that only the
@@ -92,6 +95,14 @@ illuminated area of $2048 \times 1032$, as illustrated in Figure
     prescan and overscan columns, not shown here.}
 \end{figure}
 
+In the notebook \code{gfa-metrology.ipynb}, we cut-and-paste the
+results cells from each of the GFA metrology reports, and also extract
+the images, then go through each image and detect and measure the spot
+location to sub-pixel accuracy, by fitting a 2-d Gaussian profile.  We
+transform these measurements to coordinates that match the spreadsheet
+coordinate system, and also transform to match the mountain coordinate
+system.  We then fit a linear transformation from the mountain pixel
+coordinate system (in FITS-indexed pixels), to millimeters.
 
 
 \paragraph{Notes}
@@ -101,9 +112,6 @@ filenames are \code{.fits}.
 
 GFA\#2 has a transcription error in one of the spot positions: the
 spreadsheet contains $1548$, but the measured position is $\sim 1458$.
-
-GFA\#4 has a transcripion error: spreadsheet contains $1661$, measured
-position $\sim 1166$.
 
 GFA\#4 is missing file \code{IMG\_30.fits}.
 
