@@ -34,7 +34,7 @@ location order, looked up via DESI-5286v5.
       \hline
       Petal Location & GFA name & Petal ID & GFA ID & Metrology doc \\
       \hline
-      0 & GUIDE0 & 4  & GFA\#10 & DESI-4832 \\
+      0 & GUIDE0 & 4  & GFA\#10 & DESI-4832-v2 \\
       1 & FOCUS1 & 5  & GFA\#5 & DESI-4825 \\
       2 & GUIDE2 & 6  & GFA\#6 & DESI-4823 \\
       3 & GUIDE3 & 3  & GFA\#2 & DESI-4821 \\
@@ -42,7 +42,7 @@ location order, looked up via DESI-5286v5.
       5 & GUIDE5 & 10 & GFA\#8 & DESI-4836 \\
       6 & FOCUS6 & 11 & GFA\#13 & DESI-4886 \\
       7 & GUIDE7 & 2  & GFA\#1 & DESI-4780 \\
-      8 & GUIDE8 & 7  & GFA\#4 & DESI-4822 \\
+      8 & GUIDE8 & 7  & GFA\#4 & DESI-4822-v3 \\
       9 & FOCUS9 & 9  & GFA\#3 & DESI-4837 \\
       \hline
     \end{tabular}
@@ -95,24 +95,26 @@ illuminated area of $2048 \times 1032$, as illustrated in Figure
     prescan and overscan columns, not shown here.}
 \end{figure}
 
-In the notebook \code{gfa-metrology.ipynb}, we copy-paste the
-results cells from each of the GFA metrology reports, and also extract
-the images, then go through each image and detect and measure the spot
-location to sub-pixel accuracy, by fitting a 2-d Gaussian profile.  We
-transform these measurements to coordinates that match the spreadsheet
-coordinate system, and also transform to match the mountain coordinate
-system.  We then fit a linear transformation from the mountain pixel
-coordinate system (in FITS-indexed pixels), to millimeters.
+In the notebook \code{gfa-metrology.ipynb}, we copy-paste the results
+cells from each of the GFA metrology reports, and also extract the
+images, then go through each image and detect and measure the spot
+location to sub-pixel accuracy, by fitting a 2-d Gaussian profile (and
+masking saturated pixels).  We transform these measurements to
+coordinates that match the spreadsheet coordinate system, and also
+transform to match the mountain coordinate system.  We then fit a
+linear transformation from the mountain pixel coordinate system (in
+FITS-indexed pixels), to millimeters.
 
 Finally, we copy-paste the GIF measured pinhole locations, and apply
 the transformation to report those positions in GFA pixel positions.
 
 \paragraph{Output files}
 
-The \code{gfa-metrology-transform.fits} file contains:
+The \code{gfa-metrology-transform.fits} file contains columns:
 \begin{itemize}
 \item{gfa\_num} GFA\#x identifier
-\item{pix\_x\_coeffs, pix\_y\_coeffs} millimeters-to-mountain-pixel x transformation, as (offset, x, y).
+\item{pix\_x\_coeffs, pix\_y\_coeffs} millimeters-to-mountain-pixel x and y transformations, as (offset, x, y).
+\item{mm\_x\_coeffs, mm\_y\_coeffs} mountain-pixels-to-millimeters x and y transformations, as (offset, x, y).
 \item{gif\_1\_mm\_x, gif\_1\_mm\_y} GIF 1, millimeter coordinates
 \item{gif\_2\_mm\_x, gif\_2\_mm\_y} GIF 2, millimeter coordinates
 \item{gif\_1\_pix\_x, gif\_1\_pix\_y} GIF 1, millimeter coordinates transformed
@@ -130,7 +132,10 @@ filenames are \code{.fits}.
 GFA\#2 has a transcription error in one of the spot positions: the
 spreadsheet contains $1548$, but the measured position is $\sim 1458$.
 
-GFA\#4 is missing file \code{IMG\_30.fits}.
+GFA\#4 \emph{was} missing file \code{IMG\_30.fits} in version
+DESI-4822-v2; it exists in DESI-4822-v3.
+
+The spots are saturated in some images.
 
 
 
