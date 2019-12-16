@@ -30,11 +30,11 @@ location order, looked up via DESI-5286v5.
 
 \begin{table}[h!]
   \begin{center}
-    \begin{tabular}{|c|c|c|c|c|c|}
+    \begin{tabular}{|c|c|c|c|c|}
       \hline
-      Petal Location & GFA name & Petal ID & GFA ID & GFA Metrology doc & Petal Metrology doc \\
+      Petal Loc & GFA name & Petal ID & GFA ID & GFA Metrology \\ % & Petal Metrology \\
       \hline
-      0 & GUIDE0 & 4  & GFA\#10 & DESI-4832-v2 & DESI-4900-v1 \\
+      0 & GUIDE0 & 4  & GFA\#10 & DESI-4832-v2 \\ %& DESI-4900-v1 \\
       1 & FOCUS1 & 5  & GFA\#5 & DESI-4825-v2 \\
       2 & GUIDE2 & 6  & GFA\#6 & DESI-4823-v2 \\
       3 & GUIDE3 & 3  & GFA\#2 & DESI-4821-v2 \\
@@ -114,6 +114,7 @@ The \code{gfa-metrology-transform.fits} file contains columns:
 \begin{itemize}
 \item{gfa\_num} GFA\#x identifier
 \item{pix\_x\_coeffs, pix\_y\_coeffs} millimeters-to-mountain-pixel x and y transformations, as (offset, x, y).
+  That is, to convert local GFA metrology mm to pixels, \code{pix\_x = pix\_x\_coeffs[0] + pix\_x\_coeffs[1]*mm\_x + pix\_x\_coeffs[2]*mm\_y}
 \item{mm\_x\_coeffs, mm\_y\_coeffs} mountain-pixels-to-millimeters x and y transformations, as (offset, x, y).
 \item{gif\_1\_mm\_x, gif\_1\_mm\_y} GIF 1, millimeter coordinates
 \item{gif\_2\_mm\_x, gif\_2\_mm\_y} GIF 2, millimeter coordinates
@@ -135,9 +136,25 @@ spreadsheet contains $1548$, but the measured position is $\sim 1458$.
 GFA\#4 \emph{was} missing file \code{IMG\_30.fits} in version
 DESI-4822-v2; it exists in DESI-4822-v3.
 
-The spots are saturated in some images.
+The spots are saturated in some images.  In the notebook, we handle this correctly, by masking the central pixels
+when performing the Gaussian spot fit.
 
 
+\paragraph{GIF spot locations} are reported in Table \ref{tab:pinholes},
+for completeness.
+
+\begin{table}
+  \begin{center}
+    \begin{footnotesize}
+    \begin{tabular}{|ccc|c|c|}
+      \hline
+      \input{spots.tex}
+    \end{tabular}
+    \end{footnotesize}
+  \end{center}
+  \caption{Summary of results: GIF pinhole locations in GFA pixel coords.
+  \label{tab:pinholes}}
+\end{table}
 
 
 
