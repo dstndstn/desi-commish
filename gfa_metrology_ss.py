@@ -148,7 +148,27 @@ gif_ss_4_1 = '''1	39.226	26.915	14.87
 2	39.595	28.482	14.89
 3	38.071	27.189	14.91
 4	38.837	27.833	14.88'''
+##### NOTE that pinhole 1 here is wrong -- it's a re-measurement of pinhole 3.
 gif_ss_4_2 = '''1	79.562	73.973	15.03
+2	78.628	75.75	15.03
+3	79.558	73.972	15.03
+4	79.101	74.867	15.03'''
+
+# THIS is a patched version -- I filled in pinhole 1 with a fake measurement
+# --
+# Pinhole 1 (row 0) is wrong.
+# v = np.zeros((3,2))
+# cx = G.x[3]
+# cy = G.y[3]
+# v[:,0] = G.x[1:] - cx
+# v[:,1] = G.y[1:] - cy
+# U,S,V = np.linalg.svd(v)
+# fx = 0.96
+# fy = 0.72
+# v1x = G.x[2] - V[1,0]*fx - V[0,0]*fy
+# v1y = G.y[2] - V[1,1]*fx - V[0,1]*fy
+# 
+gif_ss_4_2 = '''1	80.075	75.055	15.03
 2	78.628	75.75	15.03
 3	79.558	73.972	15.03
 4	79.101	74.867	15.03'''
@@ -180,6 +200,27 @@ def parse_gif_ss(ss):
     G.pinhole = np.array([int(w[0]) for w in lines])
     G.x = np.array([float(w[1]) for w in lines])
     G.y = np.array([float(w[2]) for w in lines])
+
+    def dist_btw(i, j):
+        return np.hypot(G.x[i] - G.x[j], G.y[i] - G.y[j])
+    def check_dist(d, target):
+        if np.abs(d - target) >= 0.02:
+            print('Distance supposed to be', target, 'but is', d)
+        assert(np.abs(d - target) < 0.02)
+    assert(np.all(G.pinhole == np.arange(1,5)))
+    d12 = dist_btw(0, 1)
+    check_dist(d12, 1.6)
+    d13 = dist_btw(0, 2)
+    check_dist(d13, 1.2)
+    d14 = dist_btw(0, 3)
+    check_dist(d14, 1.0)
+    d23 = dist_btw(1, 2)
+    check_dist(d23, 2.0)
+    d24 = dist_btw(1, 3)
+    check_dist(d24, 1.0)
+    d34 = dist_btw(2, 3)
+    check_dist(d34, 1.0)
+
     return G
 
 gfa_spreadsheets = {10: parse_gfa_ss(spreadsheet_10),
