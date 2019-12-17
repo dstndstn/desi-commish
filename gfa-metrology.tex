@@ -51,6 +51,8 @@ location order, looked up via DESI-5286v5.
   \end{center}
 \end{table}
 
+\section{GFA Metrology}
+
 In each GFA metrology report, there is a spreadsheet named
 ``GFA\#\#\_Lateral\_Measurements.xlsx'', plus a set of FITS images as a
 zip file.  In the spreadsheet, the ``GFA Images'' tab has the spot
@@ -110,7 +112,7 @@ the transformation to report those positions in GFA pixel positions.
 
 \paragraph{Output files}
 
-The \code{gfa-metrology-transform.fits} file contains columns:
+The \code{data/gfa-metrology-transform.fits} file contains columns:
 \begin{itemize}
 \item{gfa\_num} GFA\#x identifier
 \item{pix\_x\_coeffs, pix\_y\_coeffs} millimeters-to-mountain-pixel x and y transformations, as (offset, x, y).
@@ -149,7 +151,7 @@ for completeness.
 \begin{table}
   \begin{center}
     \begin{footnotesize}
-    \begin{tabular}{|ccc|c|c|}
+    \begin{tabular}{|ccc|r|r|}
       \hline
       \input{spots.tex}
     \end{tabular}
@@ -159,11 +161,58 @@ for completeness.
   \label{tab:pinholes}}
 \end{table}
 
+\section{GFA/GIF Metrology}
 
+DESI-5141-v6 contains metrology results of the fiducials, in JSON
+format.  These are more up-to-date than the original Excel petal
+metrology reports, such as DESI-4900.
 
+Here, we will assume that the GFA CCD and the GIFs are at the same
+offset relative to the focal plane.  We will therefore ignore the $z$
+component of the CCD, and just work in projected $x,y$ coordinates,
+assuming that the GFA module is mounted parallel to the focal plane.
+DESI-5331 shows that this is reasonable.
 
+In the notebook \code{gif-fif.ipynb} (and \code{petal-metrology.py}
+module and \code{gif-fif.py} driver), we fit for a rigid
+transformation (with scaling) between the local GFA metrology
+coordinate system and the petal-local coordinate system, based on the
+two GIFs per petal.  The scaling is required to perform the projection
+into the petal-local $x,y$ plane, because in the petal-local
+coordinate system, the two GIFs differ in $z$ by about 5 mm.
 
+This allows us to place the GFA CCD pixels in petal-local $x,y$
+coordinates.
 
+In order to take a GFA CCD image of the sky and project the RA,Dec
+position of the GIFs, we must take into account the fairly strong
+distortion pattern of the corrector lens at the location of the GFAs.
+Using the Echo-22 focal plane parameters from DESI-0329, as recorded
+in
+\code{https://desi.lbl.gov/trac/browser/code/desimodel/trunk/data/focalplane/platescale.txt},
+we use \code{Theta} as a function of \code{Radius} to project sky
+coordinates onto the focal-plane $x,y$ plane.  We create a grid with
+GFA CCD pixel locations and projected sky locations, and fit a SIP WCS
+transformation.  This is required: as shown in Figure \ref{fig:sip},
+the distortion is strong enough that the difference between assuming a
+local tangent plane and the fit SIP transformation amounts to an error
+of about 5 arcseconds when extrapolating to the positions of the GIFs.
 
+\begin{figure}
+  \begin{center}
+    \includegraphics[width=0.5\textwidth]{distortion}
+  \end{center}
+  \caption{Distortion due to Echo22 optics, centered on the GFA CCD.
+    This must be taken into account to correctly predict the sky
+    locations of the GIFs.\label{fig:sip}}
+\end{figure}
+
+The result of this fitting is a set of SIP WCS headers---polynomial
+distortion maps in pixel space---that can be used to fit GFA CCD
+images of the sky to reference catalogs, and predict the RA,Dec
+coordinates of the GIFs.
+
+These data files are stored in the \code{data} directory with names like
+\code{sip-petal4.fits}.
 
 \end{document}
