@@ -18,6 +18,7 @@ class PetalMetrology(object):
         I = np.flatnonzero(fids.gif_num == 2)
         assert(len(I) == 1)
         self.gif2 = fids[I[0]]
+        self.fifs = fids[fids.is_fif]
 
         G1,G2 = self.gif1, self.gif2
         Ti = gfa_trans
@@ -44,10 +45,17 @@ class PetalMetrology(object):
         self.vc = vc
         self.M = M
         self.MI = MI
-        #for k in gfa_trans.columns():
-        #    setattr(self, k, gfa_trans.get(k))
+        for k in ['pix_x_coeffs', 'pix_y_coeffs', 'mm_x_coeffs', 'mm_y_coeffs']:
+            setattr(self, k, gfa_trans.get(k))
         self.gfa = gfa_trans
 
+        # GFA CCD bounds
+        w,h = 2048, 1032
+        self.ccdw, self.ccdh = w,h
+        self.ccdbpx = np.array([0.5, 0.5, w+0.5, w+0.5, 0.5])
+        self.ccdbpy = np.array([0.5, h+0.5, h+0.5, 0.5, 0.5])
+        self.ccdbx,self.ccdby = self.gfa_pix_to_focal_mm(self.ccdbpx, self.ccdbpy)
+        
     def gfa_mm_to_focal_mm(self, gfax, gfay):
         gfax = gfax.ravel()
         gfay = gfay.ravel()

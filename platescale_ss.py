@@ -1,3 +1,6 @@
+import numpy as np
+from scipy.interpolate import InterpolatedUnivariateSpline
+
 # https://desi.lbl.gov/trac/browser/code/desimodel/trunk/data/focalplane/platescale.txt
 
 # Echo 22 focal plane parameters from Figure 7 of DESI-0329v3.							
@@ -7,7 +10,7 @@
 # contains the F/#, Focal Length, and Plate Scale vs. radius for							
 # both the meridional and sagittal orientations at that radius.							
 							
-# Columns:							
+# Columns:
 # - Radius : radius from center of focal plane [mm]							
 # - Theta radial angle that has a centroid at this radius [deg]							
 # - MF/# : Meridional F/#							
@@ -438,3 +441,11 @@ platescale_ss = '''0	0	3.678707383	3.678707457	13.92433205	13.92433205	67.507066
 418	1.643780611	4.221913181	3.84870154	15.89481656	14.56571531	77.06024529	70.61658056
 419	1.647387826	4.224468976	3.849477536	15.90306239	14.56858183	77.1002222	70.63047784
 420	1.650994857	4.227028699	3.85025521	15.91130854	14.57144841	77.14020066	70.64437545'''
+
+
+psss = np.array([[float(w) for w in line.split('\t')] for line in platescale_ss.split('\n')])
+Rps, Tps, Mps, Sps = psss[:,0], psss[:,1], psss[:,6], psss[:,7]
+
+Mpsfunc = InterpolatedUnivariateSpline(Rps, Mps)
+Spsfunc = InterpolatedUnivariateSpline(Rps, Sps)
+Tpsfunc = InterpolatedUnivariateSpline(Rps, Tps)
