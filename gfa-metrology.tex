@@ -86,7 +86,8 @@ central part of each CCD is illuminated, with the remaining chip area
 used for frame transfer.  The \code{gfa*.fits.fz} files $2248 \times
 1032$, with $50$-pixel prescan and overscan columns, leaving an
 illuminated area of $2048 \times 1032$, as illustrated in Figure
-\ref{fig:mountain}.
+\ref{fig:mountain}.  The lab and mountain coordinate systems are shown
+in Figure \ref{fig:spots}.
 
 \begin{figure}[h!]
   \begin{center}
@@ -95,6 +96,14 @@ illuminated area of $2048 \times 1032$, as illustrated in Figure
   \caption{\label{fig:mountain}Readout of the GFA CCDs on the
     mountain, showing the masked region.  The \code{gfa} files include
     prescan and overscan columns, not shown here.}
+\end{figure}
+
+\begin{figure}[h!]
+  \begin{center}
+    \includegraphics[width=\textwidth]{gfa-spots}
+  \end{center}
+  \caption{\label{fig:spots}Locations of spots and GIFs in the metrology coordinate
+    system and in GFA CCD coordinates as read out on the mountain.}
 \end{figure}
 
 In the notebook \code{gfa-metrology.ipynb}, we copy-paste the results
@@ -216,3 +225,6 @@ These data files are stored in the \code{data} directory with names like
 \code{sip-petal4.fits}.
 
 \end{document}
+
+% 3798
+% FVC 600 mm f/4

@@ -5,7 +5,7 @@ import numpy as np
 
 from astrometry.util.fits import fits_table
 
-from mappings import petal_to_gfa_map
+from mappings import petal_id_to_gfa_num
 
 
 class PetalMetrology(object):
@@ -100,8 +100,9 @@ class PetalMetrology(object):
 
 
 def get_petal(petal_id):
-    gfa_num = petal_to_gfa_map[petal_id]
+    gfa_num = petal_id_to_gfa_num[petal_id]
 
+    # 
     datadir = resource_filename('desi_commish', 'data')
     fn = os.path.join(datadir, 'petal-metrology-json',
                       'petal%i.json' % petal_id)

@@ -449,3 +449,8 @@ Rps, Tps, Mps, Sps = psss[:,0], psss[:,1], psss[:,6], psss[:,7]
 Mpsfunc = InterpolatedUnivariateSpline(Rps, Mps)
 Spsfunc = InterpolatedUnivariateSpline(Rps, Sps)
 Tpsfunc = InterpolatedUnivariateSpline(Rps, Tps)
+
+
+# Fit in arcsec/mm, not um/arcsec
+# Mangle = InterpolatedUnivariateSpline(Rps, 1000./Mps).antiderivative()
+# --> turns out this is just approximately Theta!
