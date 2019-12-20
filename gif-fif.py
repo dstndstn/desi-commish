@@ -51,12 +51,12 @@ for petal_id in [4, #5,
     crv = crd * cry / crr
 
     griddec = gridv
-    gridra  = gridu / np.cos(np.deg2rad(griddec))
+    gridra  = -gridu / np.cos(np.deg2rad(griddec))
     starxyz = radectoxyz(gridra, griddec)
     fieldxy = np.vstack((ccdgridpx, ccdgridpy)).T
     weights = np.ones(len(gridra))
     crdec = crv[0]
-    crra  = cru[0] / np.cos(np.deg2rad(crdec))
+    crra  = -cru[0] / np.cos(np.deg2rad(crdec))
     ps = 0.2/3600.
     tan_in = Tan(crra, crdec, crpixx, crpixy, -ps, 0., 0., ps, float(petal.ccdw), float(petal.ccdh))
     sip_order = inv_order = 4
